@@ -1,0 +1,163 @@
+#http://www.codeskulptor.org/#user43_RHe0BuM289AP2Jl_0.py
+
+"""
+Monte Carlo Tic-Tac-Toe Player
+"""
+
+import random
+import poc_ttt_gui
+import poc_ttt_provided as provided
+
+# Constants for Monte Carlo simulator
+# You may change the values of these constants as desired, but
+#  do not change their names.
+NTRIALS = 10        # Number of trials to run
+SCORE_CURRENT = 1.0 # Score for squares played by the current player
+SCORE_OTHER = -1.0   # Score for squares played by the other player
+ 
+    
+EMPTY = 1
+PLAYERX = 2
+PLAYERO = 3
+DRAW = 4
+
+# Add your functions here.
+
+def mc_trial(board, player):
+    """
+    Run a single MC trial with a clone board. 
+    Each player chooses a random x,y on board 
+    and places move. 
+    If result is not a None result to game_winner 
+    than player swithc and repeat 
+    a move selection.
+    """
+    game_winner = board.check_win()
+    
+    while game_winner == None:
+        random_x = random.choice(range(board.get_dim()))
+        random_y = random.choice(range(board.get_dim()))
+        board.move(random_x, random_y, player)
+        game_winner = board.check_win()
+        switch_player(player)
+
+def switch_player(player):
+    """
+    switches player and returns switch
+    """
+    if player == PLAYERO:
+        return PLAYERX
+    else:
+        return PLAYERO
+
+
+def mc_update_scores(scores, board, player):
+    """
+    Update scores based off of game winner. 
+    for loop Iterate through each position in grid and 
+    update grid score based off of winner of game. 
+    
+    """
+    game_winner = board.check_win()
+    
+    if game_winner == player:
+        is_winner = True
+    else:
+        is_winner = False
+    
+    [[score_grid_pos(board, grid_x, grid_y, scores, player, is_winner) 
+        for grid_x in range(board.get_dim())]
+        for grid_y in range(board.get_dim())]
+    
+    
+def score_grid_pos(board, grid_x, grid_y, scores, player, is_winner):
+    """
+    takes grid_x and grid_y pos, if game won, if player occupies 
+    pos then higher score assigned (SCORE_CURRENT).
+    
+    if player does not have pos, addition is either 0 for EMPTY, or 
+    addition is the lower value (SCORE_OTHER)
+    """
+#SCORE_CURRENT = 2.0 # Score for squares played by the current player
+#SCORE_OTHER = 1.0 
+
+
+    if is_winner:
+        if board.square(grid_x,grid_y) == player:
+            scores[grid_x][grid_y] += SCORE_CURRENT
+        elif board.square(grid_x,grid_y) == EMPTY:
+            scores[grid_x][grid_y] += 0
+        else:
+            scores[grid_x][grid_y] -= SCORE_OTHER
+            
+    elif not is_winner and (board.check_win() != DRAW):
+        if board.square(grid_x,grid_y) == player:
+            scores[grid_x][grid_y] -= SCORE_CURRENT
+        elif board.square(grid_x,grid_y) == EMPTY:
+            scores[grid_x][grid_y] += 0
+        else:
+            scores[grid_x][grid_y] += SCORE_OTHER
+    else:
+        pass
+            
+def max_calc(scores, empty_squares):
+    """
+    takes all the empty squares tuples, maps them to their grid scores, if they
+    are the max, then it is stored in max_square_value. Max value is returned.
+    """
+    max_square_value = scores[empty_squares[0][0]][empty_squares[0][1]]
+    for empty_square in empty_squares:
+        if (scores[empty_square[0]][empty_square[1]]) >= max_square_value:
+            max_square_value = scores[empty_square[0]][empty_square[1]]
+            
+    return max_square_value
+
+def get_best_move(board, scores):
+    """
+    Gets all the empty squares on board. Passes all empties to function to find max value score 
+    associated with those empties.
+    Then adds all empty squares that have that max value to a list, random choice tuple from this list 
+    is returned.
+    """
+    empty_squares = board.get_empty_squares()
+    max_square_value = max_calc(scores, empty_squares)
+    
+    if empty_squares == []:
+        return
+    
+    max_empties = [] 
+    for empty in empty_squares:
+        if scores[empty[0]][empty[1]] == max_square_value:
+            max_empties.append(empty)
+        
+    return random.choice(max_empties)
+
+def mc_move(board, player, num_trials):
+    """
+    Clones board. Initializes score list of lists (with zero in each list).
+    Passes clone to mc_trial for num_trials times. 
+    Update scores after each mc_trial. 
+    Final scores are used to determine best move (return).
+    
+    """
+    current_board = board.clone()
+    scores = []
+    
+    for dummy_row in range(board.get_dim()):
+        scores.append([])
+        for dummy_col in range(board.get_dim()):
+            scores[dummy_row].append(0)
+            
+    for _ in range(num_trials):
+        mc_trial(current_board, player)
+        mc_update_scores(scores, current_board, player)
+
+    return get_best_move(board, scores)
+
+# Test game with the console or the GUI.  Uncomment whichever 
+# you prefer.  Both should be commented out when you submit 
+# for testing to save time.
+
+#provided.play_game(mc_move, NTRIALS, False)        
+#poc_ttt_gui.run_gui(3, provided.PLAYERX, mc_move, NTRIALS, False)
+
